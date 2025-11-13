@@ -33,6 +33,7 @@ COPY main.py .
 COPY *.pt .
 COPY *.onnx .
 COPY *.md .
+COPY .streamlit/ .streamlit/
 
 # Expose Streamlit's default port
 EXPOSE 8501
