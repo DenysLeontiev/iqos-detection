@@ -22,54 +22,63 @@ def load_model():
 
 model = load_model()
 
-# Camera mode - Real-time video segmentation
+# Camera mode - Continuous photo capture with auto-refresh
 if mode == "Camera":
-    st.write("### 📷 Camera - Real-Time Video Segmentation")
+    st.write("### 📷 Camera - Real-Time Segmentation")
+    st.info("📱 The camera will continuously capture and process images")
     
-    # Simple button to start camera
-    if st.button("🎥 Start Camera", type="primary"):
-        st.info("📱 Allow camera access when prompted by your browser")
+    # Initialize session state
+    if 'camera_active' not in st.session_state:
+        st.session_state.camera_active = False
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if st.button("🎥 Start Camera" if not st.session_state.camera_active else "⏹️ Stop Camera"):
+            st.session_state.camera_active = not st.session_state.camera_active
+            st.rerun()
+    
+    if st.session_state.camera_active:
+        # Use camera input with key to force refresh
+        camera_photo = st.camera_input(
+            "Camera Capture", 
+            key=f"camera_{int(time.time() * 1000)}",
+        )
         
-        # Create placeholder for video
-        FRAME_WINDOW = st.image([])
-        
-        # Open camera (0 is default camera)
-        cap = cv2.VideoCapture(0)
-        
-        if not cap.isOpened():
-            st.error("❌ Cannot access camera. Please check permissions.")
-        else:
-            # Add stop button
-            stop_button = st.button("⏹️ Stop Camera")
+        if camera_photo is not None:
+            # Convert image
+            image = Image.open(camera_photo)
+            img_array = np.array(image)
             
-            # Display FPS
-            fps_text = st.empty()
+            # Display in columns
+            col1, col2 = st.columns(2)
             
-            while cap.isOpened() and not stop_button:
-                ret, frame = cap.read()
-                if not ret:
-                    st.error("Failed to grab frame")
-                    break
-                
-                # Run inference
-                start_time = time.time()
-                results = model(frame, conf=confidence_threshold, imgsz=320, device='cpu', verbose=False)
-                inference_time = time.time() - start_time
-                
-                # Get annotated frame
-                annotated_frame = results[0].plot()
-                annotated_frame_rgb = cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB)
-                
-                # Display frame
-                FRAME_WINDOW.image(annotated_frame_rgb)
-                
-                # Show FPS
-                fps = 1 / inference_time if inference_time > 0 else 0
-                fps_text.text(f"FPS: {fps:.1f}")
+            with col1:
+                st.write("**Live Camera**")
+                st.image(image, use_container_width=True)
             
-            # Release camera
-            cap.release()
-            st.success("✅ Camera stopped")
+            # Run inference
+            start_time = time.time()
+            results = model(img_array, conf=confidence_threshold, imgsz=320, device='cpu', verbose=False)
+            inference_time = time.time() - start_time
+            
+            # Get annotated frame
+            annotated_frame = results[0].plot()
+            annotated_frame_rgb = cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB)
+            
+            with col2:
+                st.write("**Segmentation Result**")
+                st.image(annotated_frame_rgb, use_container_width=True)
+            
+            # Show FPS
+            fps = 1 / inference_time if inference_time > 0 else 0
+            st.metric("Processing Speed", f"{fps:.1f} FPS")
+            
+            # Auto-refresh after 1 second
+            time.sleep(1)
+            st.rerun()
+    else:
+        st.write("Click 'Start Camera' to begin")
 
 # File upload mode
 elif mode == "Upload File":
