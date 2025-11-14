@@ -22,12 +22,12 @@ def load_model():
 
 model = load_model()
 
-# Camera mode - Continuous photo capture with auto-refresh
+# Camera mode - Real-time photo capture and segmentation
 if mode == "Camera":
     st.write("### 📷 Camera - Real-Time Segmentation")
-    st.info("📱 Take photos continuously to see segmentation results")
+    st.info("📱 Take a photo to see instant segmentation results")
     
-    # Use camera input without forced refresh
+    # Camera input for capturing photos
     camera_photo = st.camera_input("Take a photo to segment")
     
     if camera_photo is not None:
@@ -35,31 +35,25 @@ if mode == "Camera":
         image = Image.open(camera_photo)
         img_array = np.array(image)
         
-        # Display in columns
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.write("**Captured Image**")
-            st.image(image, use_container_width=True)
-        
-        # Run inference
-        start_time = time.time()
-        results = model(img_array, conf=confidence_threshold, imgsz=320, device='cpu', verbose=False)
-        inference_time = time.time() - start_time
+        # Run inference immediately
+        with st.spinner("Segmenting..."):
+            start_time = time.time()
+            results = model(img_array, conf=confidence_threshold, imgsz=320, device='cpu', verbose=False)
+            inference_time = time.time() - start_time
         
         # Get annotated frame
         annotated_frame = results[0].plot()
         annotated_frame_rgb = cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB)
         
-        with col2:
-            st.write("**Segmentation Result**")
-            st.image(annotated_frame_rgb, use_container_width=True)
+        # Display result
+        st.write("**Segmentation Result**")
+        st.image(annotated_frame_rgb, use_container_width=True)
         
-        # Show FPS
+        # Show inference stats
         fps = 1 / inference_time if inference_time > 0 else 0
         st.success(f"✅ Processed in {inference_time:.2f}s ({fps:.1f} FPS)")
         
-        st.info("💡 Tip: Click the camera button again to capture and segment another frame")
+        st.info("💡 Tip: Take another photo to segment a new frame")
 
 # File upload mode
 elif mode == "Upload File":
