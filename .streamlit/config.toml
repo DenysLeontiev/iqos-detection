@@ -4,12 +4,9 @@ address = "0.0.0.0"
 headless = true
 enableCORS = false
 enableXsrfProtection = false
+enableWebsocketCompression = false
 
 [browser]
 serverAddress = "167.71.60.183"
 serverPort = 8501
 gatherUsageStats = false
-
-# Important for HTTPS/reverse proxy
-[server]
-enableWebsocketCompression = false
